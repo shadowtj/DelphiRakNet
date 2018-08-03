@@ -9,6 +9,7 @@ uses
 
 var
   portString: string;
+
 begin
   try
     writeln('This is a sample implementation of a text based chat server.');
