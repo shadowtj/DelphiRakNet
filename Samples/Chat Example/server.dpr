@@ -5,11 +5,6 @@ program server;
 {$R *.res}
 
 uses
-  madExcept,
-  madLinkDisAsm,
-  madListHardware,
-  madListProcesses,
-  madListModules,
   System.SysUtils,
   RakPeerInterface in '..\..\Source\RakPeerInterface.pas';
 

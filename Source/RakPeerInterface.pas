@@ -2,6 +2,9 @@ unit RakPeerInterface;
 
 interface
 
+uses
+  System.Generics.Collections;
+
 type
   IRakPeerInterface = Interface(IInterface)
     ///Destructor
@@ -201,14 +204,14 @@ type
     /// \return 0 if no packets are waiting to be handled, otherwise a pointer to a packet.
     /// \note COMMON MISTAKE: Be sure to call this in a loop, once per game tick, until it returns 0. If you only process one packet per game tick they will buffer up.
     /// sa RakNetTypes.h contains struct Packet
-    virtual Packet* Receive( void )=0;
+    function Receive(): IPacket; virtual;
 
     /// Call this to deallocate a message returned by Receive() when you are done handling it.
     /// \param[in] packet The message to deallocate.
-    virtual void DeallocatePacket( Packet *packet )=0;
+    function DeallocatePacket(packet: IPacket): Boolean; virtual;
 
     /// Return the total number of connections we are allowed
-    virtual unsigned int GetMaximumNumberOfPeers( void ) const=0;
+    function GetMaximumNumberOfPeers(): Word; virtual;
 
     // -------------------------------------------------------------------------------------------- Connection Management Functions--------------------------------------------------------------------------------------------
     /// Close the connection to another host (if we initiated the connection it will disconnect, if they did it will kick them out).
@@ -216,68 +219,68 @@ type
     /// \param[in] sendDisconnectionNotification True to send ID_DISCONNECTION_NOTIFICATION to the recipient.  False to close it silently.
     /// \param[in] channel Which ordering channel to send the disconnection notification on, if any
     /// \param[in] disconnectionNotificationPriority Priority to send ID_DISCONNECTION_NOTIFICATION on.
-    virtual void CloseConnection( const AddressOrGUID target, bool sendDisconnectionNotification, unsigned char orderingChannel=0, PacketPriority disconnectionNotificationPriority=LOW_PRIORITY )=0;
+    procedure CloseConnection(const target: AddressOrGUID; sendDisconnectionNotification: Boolean; orderingChannel: Byte = 0; disconnectionNotificationPriority: PacketPriority = LOW_PRIORITY ); virtual;
 
     /// Returns if a system is connected, disconnected, connecting in progress, or various other states
     /// \param[in] systemIdentifier The system we are referring to
     /// \note This locks a mutex, do not call too frequently during connection attempts or the attempt will take longer and possibly even timeout
     /// \return What state the remote system is in
-    virtual ConnectionState GetConnectionState(const AddressOrGUID systemIdentifier)=0;
+    function GetConnectionState(const systemIdentifier: AddressOrGUID): ConnectionState; virtual;
 
     /// Cancel a pending connection attempt
     /// If we are already connected, the connection stays open
     /// \param[in] target Which system to cancel
-    virtual void CancelConnectionAttempt( const SystemAddress target )=0;
+    procedure CancelConnectionAttempt(const target: SystemAddress);
 
     /// Given a systemAddress, returns an index from 0 to the maximum number of players allowed - 1.
     /// \param[in] systemAddress The SystemAddress we are referring to
     /// \return The index of this SystemAddress or -1 on system not found.
-    virtual int GetIndexFromSystemAddress( const SystemAddress systemAddress ) const=0;
+    function GetIndexFromSystemAddress(const systemAddress: SystemAddress): Integer; virtual;
 
     /// This function is only useful for looping through all systems
     /// Given an index, will return a SystemAddress.
     /// \param[in] index Index should range between 0 and the maximum number of players allowed - 1.
     /// \return The SystemAddress
-    virtual SystemAddress GetSystemAddressFromIndex( unsigned int index )=0;
+    function GetSystemAddressFromIndex(index: Word): SystemAddress; virtual;
 
     /// Same as GetSystemAddressFromIndex but returns RakNetGUID
     /// \param[in] index Index should range between 0 and the maximum number of players allowed - 1.
     /// \return The RakNetGUID
-    virtual RakNetGUID GetGUIDFromIndex( unsigned int index )=0;
+    function GetGUIDFromIndex(index: Word): RakNetGUID; virtual;
 
     /// Same as calling GetSystemAddressFromIndex and GetGUIDFromIndex for all systems, but more efficient
     /// Indices match each other, so \a addresses[0] and \a guids[0] refer to the same system
     /// \param[out] addresses All system addresses. Size of the list is the number of connections. Size of the list will match the size of the \a guids list.
     /// \param[out] guids All guids. Size of the list is the number of connections. Size of the list will match the size of the \a addresses list.
-    virtual void GetSystemList(DataStructures::List<SystemAddress> &addresses, DataStructures::List<RakNetGUID> &guids) const=0;
+    procedure GetSystemList(addresses: TList<SystemAddress>; guids: TList<RakNetGUID>); virtual;
 
     /// Bans an IP from connecting.  Banned IPs persist between connections but are not saved on shutdown nor loaded on startup.
     /// param[in] IP Dotted IP address. Can use * as a wildcard, such as 128.0.0.* will ban all IP addresses starting with 128.0.0
     /// \param[in] milliseconds how many ms for a temporary ban.  Use 0 for a permanent ban
-    virtual void AddToBanList( const char *IP, RakNet::TimeMS milliseconds=0 )=0;
+    procedure AddToBanList(const IP: PChar; milliseconds: RakNet.TimeMS = 0); virtual;
 
     /// Allows a previously banned IP to connect.
     /// param[in] Dotted IP address. Can use * as a wildcard, such as 128.0.0.* will banAll IP addresses starting with 128.0.0
-    virtual void RemoveFromBanList( const char *IP )=0;
+    procedure RemoveFromBanList(const IP: PChar); virtual;
 
     /// Allows all previously banned IPs to connect.
-    virtual void ClearBanList( void )=0;
+    procedure ClearBanList(); virtual;
 
     /// Returns true or false indicating if a particular IP is banned.
     /// \param[in] IP - Dotted IP address.
     /// \return true if IP matches any IPs in the ban list, accounting for any wildcards. False otherwise.
-    virtual bool IsBanned( const char *IP )=0;
+    function IsBanned(const IP: PChar): Boolean; virtual;
 
     /// Enable or disable allowing frequent connections from the same IP adderss
     /// This is a security measure which is disabled by default, but can be set to true to prevent attackers from using up all connection slots
     /// \param[in] b True to limit connections from the same ip to at most 1 per 100 milliseconds.
-    virtual void SetLimitIPConnectionFrequency(bool b)=0;
+    procedure SetLimitIPConnectionFrequency(b: Boolean); virtual;
 
     // --------------------------------------------------------------------------------------------Pinging Functions - Functions dealing with the automatic ping mechanism--------------------------------------------------------------------------------------------
     /// Send a ping to the specified connected system.
     /// \pre The sender and recipient must already be started via a successful call to Startup()
     /// \param[in] target Which system to ping
-    virtual void Ping( const SystemAddress target )=0;
+    procedure Ping(const target: SystemAddress); virtual;
 
     /// Send a ping to the specified unconnected system. The remote system, if it is Initialized, will respond with ID_PONG followed by sizeof(RakNet::TimeMS) containing the system time the ping was sent.(Default is 4 bytes - See __GET_TIME_64BIT in RakNetTypes.h
     /// System should reply with ID_PONG if it is active
@@ -286,28 +289,28 @@ type
     /// \param[in] onlyReplyOnAcceptingConnections Only request a reply if the remote system is accepting connections
     /// \param[in] connectionSocketIndex Index into the array of socket descriptors passed to socketDescriptors in RakPeer::Startup() to send on.
     /// \return true on success, false on failure (unknown hostname)
-    virtual bool Ping( const char* host, unsigned short remotePort, bool onlyReplyOnAcceptingConnections, unsigned connectionSocketIndex=0 )=0;
+    function Ping(const host: PChar; remotePort: Word; onlyReplyOnAcceptingConnections: Boolean; connectionSocketIndex: Byte = 0): Boolean; virtual;
 
     /// Returns the average of all ping times read for the specific system or -1 if none read yet
     /// \param[in] systemAddress Which system we are referring to
     /// \return The ping time for this system, or -1
-    virtual int GetAveragePing( const AddressOrGUID systemIdentifier )=0;
+    function GetAveragePing(const systemIdentifier: AddressOrGUID): Integer; virtual;
 
     /// Returns the last ping time read for the specific system or -1 if none read yet
     /// \param[in] systemAddress Which system we are referring to
     /// \return The last ping time for this system, or -1
-    virtual int GetLastPing( const AddressOrGUID systemIdentifier ) const=0;
+    function GetLastPing(const systemIdentifier: AddressOrGUID): Integer; virtual;
 
     /// Returns the lowest ping time read or -1 if none read yet
     /// \param[in] systemAddress Which system we are referring to
     /// \return The lowest ping time for this system, or -1
-    virtual int GetLowestPing( const AddressOrGUID systemIdentifier ) const=0;
+    function GetLowestPing(const systemIdentifier: AddressOrGUID): Integer; virtual;
 
     /// Ping the remote systems every so often, or not. Can be called anytime.
     /// By default this is true. Recommended to leave on, because congestion control uses it to determine how often to resend lost packets.
     /// It would be true by default to prevent timestamp drift, since in the event of a clock spike, the timestamp deltas would no longer be accurate
     /// \param[in] doPing True to start occasional pings.  False to stop them.
-    virtual void SetOccasionalPing( bool doPing )=0;
+    procedure SetOccasionalPing(doPing: Boolean); virtual;
 
     /// Return the clock difference between your system and the specified system
     /// Subtract GetClockDifferential() from a time returned by the remote system to get that time relative to your own system
