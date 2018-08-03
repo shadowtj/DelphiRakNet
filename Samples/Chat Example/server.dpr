@@ -5,8 +5,7 @@ program server;
 {$R *.res}
 
 uses
-  System.SysUtils,
-  RakPeerInterface in '..\..\Source\RakPeerInterface.pas';
+  System.SysUtils;
 
 var
   portString: string;

@@ -3,6 +3,8 @@ unit RakPeerInterface;
 interface
 
 uses
+  RakNetTypes,
+  RakNetTime,
   System.Generics.Collections;
 
 type
@@ -21,7 +23,7 @@ type
     /// \param[in] socketDescriptorCount The size of the \a socketDescriptors array.  Pass 1 if you are not sure what to pass.
     /// \param[in] threadPriority Passed to the thread creation routine. Use THREAD_PRIORITY_NORMAL for Windows. For Linux based systems, you MUST pass something reasonable based on the thread priorities for your application.
     /// \return RAKNET_STARTED on success, otherwise appropriate failure enumeration.
-    function Startup(maxConnections: Word; socketDescriptors: ISocketDescriptor; socketDescriptorCount: Word; threadPriority; Integer = 99999): StartupResult; virtual;
+    function Startup(maxConnections: Word; socketDescriptors: TSocketDescriptor; socketDescriptorCount: Word; threadPriority: Integer = 99999): TStartupResult;
 
     /// If you accept connections, you must call this or else security will not be enabled for incoming connections.
     /// This feature requires more round trips, bandwidth, and CPU time for the connection handshake
@@ -32,51 +34,51 @@ type
     /// \param[in] publicKey A pointer to the public key for accepting new connections
     /// \param[in] privateKey A pointer to the private key for accepting new connections
     /// \param[in] bRequireClientKey: Should be set to false for most servers.  Allows the server to accept a public key from connecting clients as a proof of identity but eats twice as much CPU time as a normal connection
-    function InitializeSecurity(const publicKey: PChar; const privateKey: PChar; bRequireClientKey: Boolean = false): Boolean; virtual;
+    function InitializeSecurity(const publicKey: PChar; const privateKey: PChar; bRequireClientKey: Boolean = false): Boolean;
 
     /// Disables security for incoming connections.
     /// \note Must be called while offline
-    procedure DisableSecurity; virtual;
+    procedure DisableSecurity;
 
     /// If secure connections are on, do not use secure connections for a specific IP address.
     /// This is useful if you have a fixed-address internal server behind a LAN.
     /// \note Secure connections are determined by the recipient of an incoming connection. This has no effect if called on the system attempting to connect.
     /// \param[in] ip IP address to add. * wildcards are supported.
-    procedure AddToSecurityExceptionList(ip: PChar); virtual;
+    procedure AddToSecurityExceptionList(ip: PChar);
 
     /// Remove a specific connection previously added via AddToSecurityExceptionList
     /// \param[in] ip IP address to remove. Pass 0 to remove all IP addresses. * wildcards are supported.
-    procedure RemoveFromSecurityExceptionList(ip: PChar); virtual;
+    procedure RemoveFromSecurityExceptionList(ip: PChar);
 
     /// Checks to see if a given IP is in the security exception list
     /// \param[in] IP address to check.
-    function IsInSecurityExceptionList(ip: PChar): Boolean; virtual;
+    function IsInSecurityExceptionList(ip: PChar): Boolean;
 
     /// Sets how many incoming connections are allowed. If this is less than the number of players currently connected,
     /// no more players will be allowed to connect.  If this is greater than the maximum number of peers allowed,
     /// it will be reduced to the maximum number of peers allowed.
     /// Defaults to 0, meaning by default, nobody can connect to you
     /// \param[in] numberAllowed Maximum number of incoming connections allowed.
-    procedure SetMaximumIncomingConnections(numberAllowed: Word); virtual;
+    procedure SetMaximumIncomingConnections(numberAllowed: Word);
 
     /// Returns the value passed to SetMaximumIncomingConnections()
     /// \return the maximum number of incoming connections, which is always <= maxConnections
-    function GetMaximumIncomingConnections(): Word; virtual;
+    function GetMaximumIncomingConnections(): Word;
 
     /// Returns how many open connections there are at this time
     /// \return the number of open connections
-    function NumberOfConnections(): Word; virtual;
+    function NumberOfConnections(): Word;
 
     /// Sets the password incoming connections must match in the call to Connect (defaults to none). Pass 0 to passwordData to specify no password
     /// This is a way to set a low level password for all incoming connections.  To selectively reject connections, implement your own scheme using CloseConnection() to remove unwanted connections
     /// \param[in] passwordData A data block that incoming connections must match.  This can be just a password, or can be a stream of data. Specify 0 for no password data
     /// \param[in] passwordDataLength The length in bytes of passwordData
-    procedure SetIncomingPassword(const passwordData: PChar; passwordDataLength: Integer); virtual;
+    procedure SetIncomingPassword(const passwordData: PChar; passwordDataLength: Integer);
 
     /// Gets the password passed to SetIncomingPassword
     /// \param[out] passwordData  Should point to a block large enough to hold the password data you passed to SetIncomingPassword()
     /// \param[in,out] passwordDataLength Maximum size of the array passwordData.  Modified to hold the number of bytes actually written
-    procedure GetIncomingPassword(passwordData: PChar; passwordDataLength: Integer); virtual;
+    procedure GetIncomingPassword(passwordData: PChar; passwordDataLength: Integer);
 
     /// \brief Connect to the specified host (ip or domain name) and server port.
     /// Calling Connect and not calling SetMaximumIncomingConnections acts as a dedicated client.
@@ -96,7 +98,7 @@ type
     /// \return CONNECTION_ATTEMPT_STARTED on successful initiation. Otherwise, an appropriate enumeration indicating failure.
     /// \note CONNECTION_ATTEMPT_STARTED does not mean you are already connected!
     /// \note It is possible to immediately get back ID_CONNECTION_ATTEMPT_FAILED if you exceed the maxConnections parameter passed to Startup(). This could happen if you call CloseConnection() with sendDisconnectionNotificaiton true, then immediately call Connect() before the connection has closed.
-    function Connect(const host: PChar; remotePort: Word; const passwordData: PChar; passwordDataLength: Integer; publicKey: IPublicKey = nil; connectionSocketIndex: Word = 0; sendConnectionAttemptCount: Word = 12; timeBetweenSendConnectionAttemptsMS: Word = 500; timeoutTime: RakNet.TimeMS = 0): ConnectionAttemptResult; virtual;
+    function Connect(const host: PChar; remotePort: Word; const passwordData: PChar; passwordDataLength: Integer; publicKey: TPublicKey; connectionSocketIndex: Word = 0; sendConnectionAttemptCount: Word = 12; timeBetweenSendConnectionAttemptsMS: Word = 500; timeoutTime: TimeMS = 0): TConnectionAttemptResult;
 
     /// \brief Connect to the specified host (ip or domain name) and server port, using a shared socket from another instance of RakNet
     /// \param[in] host Either a dotted IP address or a domain name
@@ -109,7 +111,7 @@ type
     /// \param[in] timeoutTime How long to keep the connection alive before dropping it on unable to send a reliable message. 0 to use the default from SetTimeoutTime(UNASSIGNED_SYSTEM_ADDRESS);
     /// \return CONNECTION_ATTEMPT_STARTED on successful initiation. Otherwise, an appropriate enumeration indicating failure.
     /// \note CONNECTION_ATTEMPT_STARTED does not mean you are already connected!
-    function ConnectWithSocket(const host: PChar; remotePort: Word; const passwordData: PChar; passwordDataLength: Integer; socket: IRakNetSocket2; publicKey: IPublicKey = nill; sendConnectionAttemptCount: Word = 12; timeBetweenSendConnectionAttemptsMS: Word = 500; timeoutTime: RakNet.TimeMS = 0): ConnectionAttemptResult; virtual;
+    function ConnectWithSocket(const host: PChar; remotePort: Word; const passwordData: PChar; passwordDataLength: Integer; socket: TRakNetSocket2; publicKey: IPublicKey = nill; sendConnectionAttemptCount: Word = 12; timeBetweenSendConnectionAttemptsMS: Word = 500; timeoutTime: TimeMS = 0): TConnectionAttemptResult;
 
     /// \brief Connect to the specified network ID (Platform specific console function)
     /// \details Does built-in NAt traversal
@@ -122,26 +124,26 @@ type
     /// \param[in] orderingChannel If blockDuration > 0, ID_DISCONNECTION_NOTIFICATION will be sent on this channel
     /// \param[in] disconnectionNotificationPriority Priority to send ID_DISCONNECTION_NOTIFICATION on.
     /// If you set it to 0 then the disconnection notification won't be sent
-    procedure Shutdown(blockDuration: Word; orderingChannel: Byte = 0; disconnectionNotificationPriority: PacketPriority = LOW_PRIORITY); virtual;
+    procedure Shutdown(blockDuration: Word; orderingChannel: Byte = 0; disconnectionNotificationPriority: PacketPriority = LOW_PRIORITY);
 
     /// Returns if the network thread is running
     /// \return true if the network thread is running, false otherwise
-    function IsActive(): Boolean; virtual;
+    function IsActive(): Boolean;
 
     /// Fills the array remoteSystems with the SystemAddress of all the systems we are connected to
     /// \param[out] remoteSystems An array of SystemAddress structures to be filled with the SystemAddresss of the systems we are connected to. Pass 0 to remoteSystems to only get the number of systems we are connected to
     /// \param[in, out] numberOfSystems As input, the size of remoteSystems array.  As output, the number of elements put into the array
-    function GetConnectionList(remoteSystems: ISystemAddress; numberOfSystems: Word): Boolean; virtual;
+    function GetConnectionList(remoteSystems: ISystemAddress; numberOfSystems: Word): Boolean;
 
     /// Returns the next uint32_t that Send() will return
     /// \note If using RakPeer from multiple threads, this may not be accurate for your thread. Use IncrementNextSendReceipt() in that case.
     /// \return The next uint32_t that Send() or SendList will return
-    function GetNextSendReceipt(): UInt32; virtual;
+    function GetNextSendReceipt(): UInt32;
 
     /// Returns the next uint32_t that Send() will return, and increments the value by one
     /// \note If using RakPeer from multiple threads, pass this to forceReceipt in the send function
     /// \return The next uint32_t that Send() or SendList will return
-    function IncrementNextSendReceipt(): UInt32; virtual;
+    function IncrementNextSendReceipt(): UInt32;
 
     /// Sends a block of data to the specified system that you are connected to.
     /// This function only works while connected
@@ -155,14 +157,14 @@ type
     /// \param[in] broadcast True to send this packet to all connected systems. If true, then systemAddress specifies who not to send the packet to.
     /// \param[in] forceReceipt If 0, will automatically determine the receipt number to return. If non-zero, will return what you give it.
     /// \return 0 on bad input. Otherwise a number that identifies this message. If \a reliability is a type that returns a receipt, on a later call to Receive() you will get ID_SND_RECEIPT_ACKED or ID_SND_RECEIPT_LOSS with bytes 1-4 inclusive containing this number
-    function Send(const data: PChar; const length: Integer; priority: PacketPriority; reliability: PacketReliability; orderingChannel: Char; const systemIdentifier: AddressOrGUID; broadcast: Boolean; forceReceiptNumber: UInt32 = 0): UInt32; virtual;
+    function Send(const data: PChar; const length: Integer; priority: PacketPriority; reliability: PacketReliability; orderingChannel: Char; const systemIdentifier: AddressOrGUID; broadcast: Boolean; forceReceiptNumber: UInt32 = 0): UInt32;
 
     /// "Send" to yourself rather than a remote system. The message will be processed through the plugins and returned to the game as usual
     /// This function works anytime
     /// The first byte should be a message identifier starting at ID_USER_PACKET_ENUM
     /// \param[in] data The block of data to send
     /// \param[in] length The size in bytes of the data to send
-    procedure SendLoopback(const data: PChar; const length: Integer); virtual;
+    procedure SendLoopback(const data: PChar; const length: Integer);
 
     /// Sends a block of data to the specified system that you are connected to.  Same as the above version, but takes a BitStream as input.
     /// \param[in] bitStream The bitstream to send
@@ -174,7 +176,7 @@ type
     /// \param[in] forceReceipt If 0, will automatically determine the receipt number to return. If non-zero, will return what you give it.
     /// \return 0 on bad input. Otherwise a number that identifies this message. If \a reliability is a type that returns a receipt, on a later call to Receive() you will get ID_SND_RECEIPT_ACKED or ID_SND_RECEIPT_LOSS with bytes 1-4 inclusive containing this number
     /// \note COMMON MISTAKE: When writing the first byte, bitStream->Write((unsigned char) ID_MY_TYPE) be sure it is casted to a byte, and you are not writing a 4 byte enumeration.
-    function Send(const bitStream: RakNet.IBitStream; priority: PacketPriority; reliability: PacketReliability; orderingChannel: Char; const systemIdentifier: AddressOrGUID; broadcast: Boolean; forceReceiptNumber: Uint32 = 0): Uint32; virtual;
+    function Send(const bitStream: RakNet.IBitStream; priority: PacketPriority; reliability: PacketReliability; orderingChannel: Char; const systemIdentifier: AddressOrGUID; broadcast: Boolean; forceReceiptNumber: Uint32 = 0): Uint32;
 
     /// Sends multiple blocks of data, concatenating them automatically.
     ///
@@ -196,7 +198,7 @@ type
     /// \param[in] broadcast True to send this packet to all connected systems. If true, then systemAddress specifies who not to send the packet to.
     /// \param[in] forceReceipt If 0, will automatically determine the receipt number to return. If non-zero, will return what you give it.
     /// \return 0 on bad input. Otherwise a number that identifies this message. If \a reliability is a type that returns a receipt, on a later call to Receive() you will get ID_SND_RECEIPT_ACKED or ID_SND_RECEIPT_LOSS with bytes 1-4 inclusive containing this number
-    function SendList(const data: PChar; const lengths: Integer; const numParameters: Integer; priority: PacketPriority; reliability: PacketReliability; char orderingChannel, const AddressOrGUID systemIdentifier, bool broadcast, uint32_t forceReceiptNumber=0 ): UInt32; virtual;
+    function SendList(const data: PChar; const lengths: Integer; const numParameters: Integer; priority: PacketPriority; reliability: PacketReliability; char orderingChannel, const AddressOrGUID systemIdentifier, bool broadcast, uint32_t forceReceiptNumber=0 ): UInt32;
 
     /// Gets a message from the incoming message queue.
     /// Use DeallocatePacket() to deallocate the message after you are done with it.
@@ -204,14 +206,14 @@ type
     /// \return 0 if no packets are waiting to be handled, otherwise a pointer to a packet.
     /// \note COMMON MISTAKE: Be sure to call this in a loop, once per game tick, until it returns 0. If you only process one packet per game tick they will buffer up.
     /// sa RakNetTypes.h contains struct Packet
-    function Receive(): IPacket; virtual;
+    function Receive(): IPacket;
 
     /// Call this to deallocate a message returned by Receive() when you are done handling it.
     /// \param[in] packet The message to deallocate.
-    function DeallocatePacket(packet: IPacket): Boolean; virtual;
+    function DeallocatePacket(packet: IPacket): Boolean;
 
     /// Return the total number of connections we are allowed
-    function GetMaximumNumberOfPeers(): Word; virtual;
+    function GetMaximumNumberOfPeers(): Word;
 
     // -------------------------------------------------------------------------------------------- Connection Management Functions--------------------------------------------------------------------------------------------
     /// Close the connection to another host (if we initiated the connection it will disconnect, if they did it will kick them out).
@@ -219,68 +221,68 @@ type
     /// \param[in] sendDisconnectionNotification True to send ID_DISCONNECTION_NOTIFICATION to the recipient.  False to close it silently.
     /// \param[in] channel Which ordering channel to send the disconnection notification on, if any
     /// \param[in] disconnectionNotificationPriority Priority to send ID_DISCONNECTION_NOTIFICATION on.
-    procedure CloseConnection(const target: AddressOrGUID; sendDisconnectionNotification: Boolean; orderingChannel: Byte = 0; disconnectionNotificationPriority: PacketPriority = LOW_PRIORITY ); virtual;
+    procedure CloseConnection(const target: AddressOrGUID; sendDisconnectionNotification: Boolean; orderingChannel: Byte = 0; disconnectionNotificationPriority: PacketPriority = LOW_PRIORITY );
 
     /// Returns if a system is connected, disconnected, connecting in progress, or various other states
     /// \param[in] systemIdentifier The system we are referring to
     /// \note This locks a mutex, do not call too frequently during connection attempts or the attempt will take longer and possibly even timeout
     /// \return What state the remote system is in
-    function GetConnectionState(const systemIdentifier: AddressOrGUID): ConnectionState; virtual;
+    function GetConnectionState(const systemIdentifier: AddressOrGUID): ConnectionState;
 
     /// Cancel a pending connection attempt
     /// If we are already connected, the connection stays open
     /// \param[in] target Which system to cancel
-    procedure CancelConnectionAttempt(const target: SystemAddress);
+    procedure CancelConnectionAttempt(const target: ISystemAddress);
 
     /// Given a systemAddress, returns an index from 0 to the maximum number of players allowed - 1.
     /// \param[in] systemAddress The SystemAddress we are referring to
     /// \return The index of this SystemAddress or -1 on system not found.
-    function GetIndexFromSystemAddress(const systemAddress: SystemAddress): Integer; virtual;
+    function GetIndexFromSystemAddress(const systemAddress: ISystemAddress): Integer;
 
     /// This function is only useful for looping through all systems
     /// Given an index, will return a SystemAddress.
     /// \param[in] index Index should range between 0 and the maximum number of players allowed - 1.
     /// \return The SystemAddress
-    function GetSystemAddressFromIndex(index: Word): SystemAddress; virtual;
+    function GetSystemAddressFromIndex(index: Word): ISystemAddress;
 
     /// Same as GetSystemAddressFromIndex but returns RakNetGUID
     /// \param[in] index Index should range between 0 and the maximum number of players allowed - 1.
     /// \return The RakNetGUID
-    function GetGUIDFromIndex(index: Word): RakNetGUID; virtual;
+    function GetGUIDFromIndex(index: Word): RakNetGUID;
 
     /// Same as calling GetSystemAddressFromIndex and GetGUIDFromIndex for all systems, but more efficient
     /// Indices match each other, so \a addresses[0] and \a guids[0] refer to the same system
     /// \param[out] addresses All system addresses. Size of the list is the number of connections. Size of the list will match the size of the \a guids list.
     /// \param[out] guids All guids. Size of the list is the number of connections. Size of the list will match the size of the \a addresses list.
-    procedure GetSystemList(addresses: TList<SystemAddress>; guids: TList<RakNetGUID>); virtual;
+    procedure GetSystemList(addresses: TList<ISystemAddress>; guids: TList<RakNetGUID>);
 
     /// Bans an IP from connecting.  Banned IPs persist between connections but are not saved on shutdown nor loaded on startup.
     /// param[in] IP Dotted IP address. Can use * as a wildcard, such as 128.0.0.* will ban all IP addresses starting with 128.0.0
     /// \param[in] milliseconds how many ms for a temporary ban.  Use 0 for a permanent ban
-    procedure AddToBanList(const IP: PChar; milliseconds: RakNet.TimeMS = 0); virtual;
+    procedure AddToBanList(const IP: PChar; milliseconds: RakNet.TimeMS = 0);
 
     /// Allows a previously banned IP to connect.
     /// param[in] Dotted IP address. Can use * as a wildcard, such as 128.0.0.* will banAll IP addresses starting with 128.0.0
-    procedure RemoveFromBanList(const IP: PChar); virtual;
+    procedure RemoveFromBanList(const IP: PChar);
 
     /// Allows all previously banned IPs to connect.
-    procedure ClearBanList(); virtual;
+    procedure ClearBanList();
 
     /// Returns true or false indicating if a particular IP is banned.
     /// \param[in] IP - Dotted IP address.
     /// \return true if IP matches any IPs in the ban list, accounting for any wildcards. False otherwise.
-    function IsBanned(const IP: PChar): Boolean; virtual;
+    function IsBanned(const IP: PChar): Boolean;
 
     /// Enable or disable allowing frequent connections from the same IP adderss
     /// This is a security measure which is disabled by default, but can be set to true to prevent attackers from using up all connection slots
     /// \param[in] b True to limit connections from the same ip to at most 1 per 100 milliseconds.
-    procedure SetLimitIPConnectionFrequency(b: Boolean); virtual;
+    procedure SetLimitIPConnectionFrequency(b: Boolean);
 
     // --------------------------------------------------------------------------------------------Pinging Functions - Functions dealing with the automatic ping mechanism--------------------------------------------------------------------------------------------
     /// Send a ping to the specified connected system.
     /// \pre The sender and recipient must already be started via a successful call to Startup()
     /// \param[in] target Which system to ping
-    procedure Ping(const target: SystemAddress); virtual;
+    procedure Ping(const target: ISystemAddress);
 
     /// Send a ping to the specified unconnected system. The remote system, if it is Initialized, will respond with ID_PONG followed by sizeof(RakNet::TimeMS) containing the system time the ping was sent.(Default is 4 bytes - See __GET_TIME_64BIT in RakNetTypes.h
     /// System should reply with ID_PONG if it is active
@@ -289,34 +291,34 @@ type
     /// \param[in] onlyReplyOnAcceptingConnections Only request a reply if the remote system is accepting connections
     /// \param[in] connectionSocketIndex Index into the array of socket descriptors passed to socketDescriptors in RakPeer::Startup() to send on.
     /// \return true on success, false on failure (unknown hostname)
-    function Ping(const host: PChar; remotePort: Word; onlyReplyOnAcceptingConnections: Boolean; connectionSocketIndex: Byte = 0): Boolean; virtual;
+    function Ping(const host: PChar; remotePort: Word; onlyReplyOnAcceptingConnections: Boolean; connectionSocketIndex: Byte = 0): Boolean;
 
     /// Returns the average of all ping times read for the specific system or -1 if none read yet
     /// \param[in] systemAddress Which system we are referring to
     /// \return The ping time for this system, or -1
-    function GetAveragePing(const systemIdentifier: AddressOrGUID): Integer; virtual;
+    function GetAveragePing(const systemIdentifier: AddressOrGUID): Integer;
 
     /// Returns the last ping time read for the specific system or -1 if none read yet
     /// \param[in] systemAddress Which system we are referring to
     /// \return The last ping time for this system, or -1
-    function GetLastPing(const systemIdentifier: AddressOrGUID): Integer; virtual;
+    function GetLastPing(const systemIdentifier: AddressOrGUID): Integer;
 
     /// Returns the lowest ping time read or -1 if none read yet
     /// \param[in] systemAddress Which system we are referring to
     /// \return The lowest ping time for this system, or -1
-    function GetLowestPing(const systemIdentifier: AddressOrGUID): Integer; virtual;
+    function GetLowestPing(const systemIdentifier: AddressOrGUID): Integer;
 
     /// Ping the remote systems every so often, or not. Can be called anytime.
     /// By default this is true. Recommended to leave on, because congestion control uses it to determine how often to resend lost packets.
     /// It would be true by default to prevent timestamp drift, since in the event of a clock spike, the timestamp deltas would no longer be accurate
     /// \param[in] doPing True to start occasional pings.  False to stop them.
-    procedure SetOccasionalPing(doPing: Boolean); virtual;
+    procedure SetOccasionalPing(doPing: Boolean);
 
     /// Return the clock difference between your system and the specified system
     /// Subtract GetClockDifferential() from a time returned by the remote system to get that time relative to your own system
     /// Returns 0 if the system is unknown
     /// \param[in] systemIdentifier Which system we are referring to
-    virtual RakNet::Time GetClockDifferential( const AddressOrGUID systemIdentifier )=0;
+    function GetClockDifferential(const systemIdentifier: AddressOrGUID): RakNet.Time;
 
     // --------------------------------------------------------------------------------------------Static Data Functions - Functions dealing with API defined synchronized memory--------------------------------------------------------------------------------------------
     /// Sets the data to send along with a LAN server discovery or offline ping reply.
@@ -324,13 +326,13 @@ type
     /// \param[in] data a block of data to store, or 0 for none
     /// \param[in] length The length of data in bytes, or 0 for none
     /// \sa Ping.cpp
-    virtual void SetOfflinePingResponse( const char *data, const unsigned int length )=0;
+    procedure SetOfflinePingResponse(const data: PChar; const length: Word);
 
     /// Returns pointers to a copy of the data passed to SetOfflinePingResponse
     /// \param[out] data A pointer to a copy of the data passed to \a SetOfflinePingResponse()
     /// \param[out] length A pointer filled in with the length parameter passed to SetOfflinePingResponse()
     /// \sa SetOfflinePingResponse
-    virtual void GetOfflinePingResponse( char **data, unsigned int *length )=0;
+    procedure GetOfflinePingResponse(data: PChar; length: Word);
 
     //--------------------------------------------------------------------------------------------Network Functions - Functions dealing with the network in general--------------------------------------------------------------------------------------------
     /// Return the unique address identifier that represents you or another system on the the network and is based on your local IP / port.
@@ -338,26 +340,26 @@ type
     /// \param[in] systemAddress Use UNASSIGNED_SYSTEM_ADDRESS to get your behind-LAN address. Use a connected system to get their behind-LAN address
     /// \param[in] index When you have multiple internal IDs, which index to return? Currently limited to MAXIMUM_NUMBER_OF_INTERNAL_IDS (so the maximum value of this variable is MAXIMUM_NUMBER_OF_INTERNAL_IDS-1)
     /// \return the identifier of your system internally, which may not be how other systems see if you if you are behind a NAT or proxy
-    virtual SystemAddress GetInternalID( const SystemAddress systemAddress=UNASSIGNED_SYSTEM_ADDRESS, const int index=0 ) const=0;
+    function GetInternalID(const systemAddress: ISystemAddress = UNASSIGNED_SYSTEM_ADDRESS; const index: Integer = 0): ISystemAddress;
 
     /// \brief Sets your internal IP address, for platforms that do not support reading it, or to override a value
     /// \param[in] systemAddress. The address to set. Use SystemAddress::FromString() if you want to use a dotted string
     /// \param[in] index When you have multiple internal IDs, which index to set?
-    virtual void SetInternalID(SystemAddress systemAddress, int index=0)=0;
+    procedure SetInternalID(systemAddress: ISystemAddress; index: Integer = 0);
 
     /// Return the unique address identifier that represents you on the the network and is based on your externalIP / port
     /// (the IP / port the specified player uses to communicate with you)
     /// \param[in] target Which remote system you are referring to for your external ID.  Usually the same for all systems, unless you have two or more network cards.
-    virtual SystemAddress GetExternalID( const SystemAddress target ) const=0;
+    function GetExternalID(const target: SystemAddress): ISystemAddress;
 
     /// Return my own GUID
-    virtual const RakNetGUID GetMyGUID(void) const=0;
+    function GetMyGUID(): RakNetGUID;
 
     /// Return the address bound to a socket at the specified index
-    virtual SystemAddress GetMyBoundAddress(const int socketIndex=0)=0;
+    function GetMyBoundAddress(const socketIndex: Integer = 0): ISystemAddress;
 
     /// Get a random number (to generate a GUID)
-    static uint64_t Get64BitUniqueRandomNumber(void);
+    function Get64BitUniqueRandomNumber(): Uint64;
 
     /// Given a connected system, give us the unique GUID representing that instance of RakPeer.
     /// This will be the same on all systems connected to that instance of RakPeer, even if the external system addresses are different
@@ -366,54 +368,54 @@ type
     /// If \a input is UNASSIGNED_SYSTEM_ADDRESS, will return your own GUID
     /// \pre Call Startup() first, or the function will return UNASSIGNED_RAKNET_GUID
     /// \param[in] input The system address of the system we are connected to
-    virtual const RakNetGUID& GetGuidFromSystemAddress( const SystemAddress input ) const=0;
+    function GetGuidFromSystemAddress(const input: ISystemAddress): RakNetGUID;
 
     /// Given the GUID of a connected system, give us the system address of that system.
     /// The GUID will be the same on all systems connected to that instance of RakPeer, even if the external system addresses are different
     /// Currently O(log(n)), but this may be improved in the future. If you use this frequently, you may want to cache the value as it won't change.
     /// If \a input is UNASSIGNED_RAKNET_GUID, will return UNASSIGNED_SYSTEM_ADDRESS
     /// \param[in] input The RakNetGUID of the system we are checking to see if we are connected to
-    virtual SystemAddress GetSystemAddressFromGuid( const RakNetGUID input ) const=0;
+    function GetSystemAddressFromGuid(const input: RakNetGUID): SystemAddress;
 
     /// Given the SystemAddress of a connected system, get the public key they provided as an identity
     /// Returns false if system address was not found or client public key is not known
     /// \param[in] input The RakNetGUID of the system
     /// \param[in] client_public_key The connected client's public key is copied to this address.  Buffer must be cat::EasyHandshake::PUBLIC_KEY_BYTES bytes in length.
-    virtual bool GetClientPublicKeyFromSystemAddress( const SystemAddress input, char *client_public_key ) const=0;
+    function GetClientPublicKeyFromSystemAddress(const input: ISystemAddress; client_public_key: PChar): Boolean;
 
     /// Set the time, in MS, to use before considering ourselves disconnected after not being able to deliver a reliable message.
     /// Default time is 10,000 or 10 seconds in release and 30,000 or 30 seconds in debug.
     /// Do not set different values for different computers that are connected to each other, or you won't be able to reconnect after ID_CONNECTION_LOST
     /// \param[in] timeMS Time, in MS
     /// \param[in] target Which system to do this for. Pass UNASSIGNED_SYSTEM_ADDRESS for all systems.
-    virtual void SetTimeoutTime( RakNet::TimeMS timeMS, const SystemAddress target )=0;
+    procedure SetTimeoutTime(timeMS: RakNet.TimeMS; const target: ISystemAddress);
 
     /// \param[in] target Which system to do this for. Pass UNASSIGNED_SYSTEM_ADDRESS to get the default value
     /// \return timeoutTime for a given system.
-    virtual RakNet::TimeMS GetTimeoutTime( const SystemAddress target )=0;
+    function GetTimeoutTime(const target: ISystemAddress): RakNet.TimeMS;
 
     /// Returns the current MTU size
     /// \param[in] target Which system to get this for.  UNASSIGNED_SYSTEM_ADDRESS to get the default
     /// \return The current MTU size
-    virtual int GetMTUSize( const SystemAddress target ) const=0;
+    function GetMTUSize(const target: ISystemAddress): Integer;
 
     /// Returns the number of IP addresses this system has internally. Get the actual addresses from GetLocalIP()
-    virtual unsigned GetNumberOfAddresses( void )=0;
+    function GetNumberOfAddresses(): Word;
 
     /// Returns an IP address at index 0 to GetNumberOfAddresses-1
     /// \param[in] index index into the list of IP addresses
     /// \return The local IP address at this index
-    virtual const char* GetLocalIP( unsigned int index )=0;
+    function GetLocalIP(index: Word): PChar;
 
     /// Is this a local IP?
     /// \param[in] An IP address to check, excluding the port
     /// \return True if this is one of the IP addresses returned by GetLocalIP
-    virtual bool IsLocalIP( const char *ip )=0;
+    function IsLocalIP( const char *ip ): Boolean;
 
     /// Allow or disallow connection responses from any IP. Normally this should be false, but may be necessary
     /// when connecting to servers with multiple IP addresses.
     /// \param[in] allow - True to allow this behavior, false to not allow. Defaults to false. Value persists between connections
-    virtual void AllowConnectionResponseIPMigration( bool allow )=0;
+    procedure AllowConnectionResponseIPMigration(allow: Boolean);
 
     /// Sends a one byte message ID_ADVERTISE_SYSTEM to the remote unconnected system.
     /// This will tell the remote system our external IP outside the LAN along with some user data.
@@ -424,79 +426,79 @@ type
     /// \param[in] dataLength length of data in bytes.  Use 0 if no data.
     /// \param[in] connectionSocketIndex Index into the array of socket descriptors passed to socketDescriptors in RakPeer::Startup() to send on.
     /// \return false if IsActive()==false or the host is unresolvable. True otherwise
-    virtual bool AdvertiseSystem( const char *host, unsigned short remotePort, const char *data, int dataLength, unsigned connectionSocketIndex=0 )=0;
+    function AdvertiseSystem(const host: PChar; remotePort: Word; const data: PChar; dataLength: Integer; connectionSocketIndex: Word = 0): Boolean;
 
     /// Controls how often to return ID_DOWNLOAD_PROGRESS for large message downloads.
     /// ID_DOWNLOAD_PROGRESS is returned to indicate a new partial message chunk, roughly the MTU size, has arrived
     /// As it can be slow or cumbersome to get this notification for every chunk, you can set the interval at which it is returned.
     /// Defaults to 0 (never return this notification)
     /// \param[in] interval How many messages to use as an interval
-    virtual void SetSplitMessageProgressInterval(int interval)=0;
+    procedure SetSplitMessageProgressInterval(int interval);
 
     /// Returns what was passed to SetSplitMessageProgressInterval()
     /// \return What was passed to SetSplitMessageProgressInterval(). Default to 0.
-    virtual int GetSplitMessageProgressInterval(void) const=0;
+    function GetSplitMessageProgressInterval(): Integer;
 
     /// Set how long to wait before giving up on sending an unreliable message
     /// Useful if the network is clogged up.
     /// Set to 0 or less to never timeout.  Defaults to 0.
     /// \param[in] timeoutMS How many ms to wait before simply not sending an unreliable message.
-    virtual void SetUnreliableTimeout(RakNet::TimeMS timeoutMS)=0;
+    procedure SetUnreliableTimeout(timeoutMS: RakNet.TimeMS);
 
     /// Send a message to host, with the IP socket option TTL set to 3
     /// This message will not reach the host, but will open the router.
     /// Used for NAT-Punchthrough
-    virtual void SendTTL( const char* host, unsigned short remotePort, int ttl, unsigned connectionSocketIndex=0 )=0;
+    procedure SendTTL(const host: PCHar; remotePort: Integer; ttl: Integer; connectionSocketIndex: Integer = 0);
 
     // -------------------------------------------------------------------------------------------- Plugin Functions--------------------------------------------------------------------------------------------
     /// \brief Attaches a Plugin interface to an instance of the base class (RakPeer or PacketizedTCP) to run code automatically on message receipt in the Receive call.
     /// If the plugin returns false from PluginInterface::UsesReliabilityLayer(), which is the case for all plugins except PacketLogger, you can call AttachPlugin() and DetachPlugin() for this plugin while RakPeer is active.
     /// \param[in] messageHandler Pointer to the plugin to attach.
-    virtual void AttachPlugin( PluginInterface2 *plugin )=0;
+    procedure AttachPlugin(plugin: IPluginInterface2);
 
     /// \brief Detaches a Plugin interface from the instance of the base class (RakPeer or PacketizedTCP) it is attached to.
     ///	\details This method disables the plugin code from running automatically on base class's updates or message receipt.
     /// If the plugin returns false from PluginInterface::UsesReliabilityLayer(), which is the case for all plugins except PacketLogger, you can call AttachPlugin() and DetachPlugin() for this plugin while RakPeer is active.
     /// \param[in] messageHandler Pointer to a plugin to detach.
-    virtual void DetachPlugin( PluginInterface2 *messageHandler )=0;
+    procedure DetachPlugin(messageHandler: IPluginInterface2 );
 
     // --------------------------------------------------------------------------------------------Miscellaneous Functions--------------------------------------------------------------------------------------------
     /// Put a message back at the end of the receive queue in case you don't want to deal with it immediately
     /// \param[in] packet The packet you want to push back.
     /// \param[in] pushAtHead True to push the packet so that the next receive call returns it.  False to push it at the end of the queue (obviously pushing it at the end makes the packets out of order)
-    virtual void PushBackPacket( Packet *packet, bool pushAtHead )=0;
+    procedure PushBackPacket(packet: IPacket; pushAtHead: Boolean);
 
     /// \internal
     /// \brief For a given system identified by \a guid, change the SystemAddress to send to.
     /// \param[in] guid The connection we are referring to
     /// \param[in] systemAddress The new address to send to
-    virtual void ChangeSystemAddress(RakNetGUID guid, const SystemAddress &systemAddress)=0;
+    procedure ChangeSystemAddress(guid: RakNetGUID; const systemAddress: ISystemAddress);
 
     /// \returns a packet for you to write to if you want to create a Packet for some reason.
     /// You can add it to the receive buffer with PushBackPacket
     /// \param[in] dataSize How many bytes to allocate for the buffer
     /// \return A packet you can write to
-    virtual Packet* AllocatePacket(unsigned dataSize)=0;
+    function AllocatePacket(unsigned dataSize): IPacket;
 
     /// Get the socket used with a particular active connection
     /// The smart pointer reference counts the RakNetSocket2 object, so the socket will remain active as long as the smart pointer does, even if RakNet were to shutdown or close the connection.
     /// \note This sends a query to the thread and blocks on the return value for up to one second. In practice it should only take a millisecond or so.
     /// \param[in] target Which system
     /// \return A smart pointer object containing the socket information about the socket. Be sure to check IsNull() which is returned if the update thread is unresponsive, shutting down, or if this system is not connected
-    virtual RakNetSocket2* GetSocket( const SystemAddress target )=0;
+    function GetSocket(const target: ISystemAddress): IRakNetSocket2;
 
     /// Get all sockets in use
     /// \note This sends a query to the thread and blocks on the return value for up to one second. In practice it should only take a millisecond or so.
     /// \param[out] sockets List of RakNetSocket2 structures in use. Sockets will not be closed until \a sockets goes out of scope
-    virtual void GetSockets( DataStructures::List<RakNetSocket2* > &sockets )=0;
-    virtual void ReleaseSockets( DataStructures::List<RakNetSocket2* > &sockets )=0;
+    procedure GetSockets(sockets: TList<RakNetSocket2>);
+    procedure ReleaseSockets(sockets: TList<RakNetSocket2>);
 
-    virtual void WriteOutOfBandHeader(RakNet::BitStream *bitStream)=0;
+    procedure WriteOutOfBandHeader(bitStream: RakNet.IBitStream);
 
     /// If you need code to run in the same thread as RakNet's update thread, this function can be used for that
     /// \param[in] _userUpdateThreadPtr C callback function
     /// \param[in] _userUpdateThreadData Passed to C callback function
-    virtual void SetUserUpdateThread(void (*_userUpdateThreadPtr)(RakPeerInterface *, void *), void *_userUpdateThreadData)=0;
+    procedure SetUserUpdateThread(void (*_userUpdateThreadPtr)(RakPeerInterface *, void *), void *_userUpdateThreadData)=0;
 
     /// Set a C callback to be called whenever a datagram arrives
     /// Return true from the callback to have RakPeer handle the datagram. Return false and RakPeer will ignore the datagram.
@@ -516,17 +518,17 @@ type
     /// \param[in] packetloss Chance to lose a packet. Ranges from 0 to 1.
     /// \param[in] minExtraPing The minimum time to delay sends.
     /// \param[in] extraPingVariance The additional random time to delay sends.
-    virtual void ApplyNetworkSimulator( float packetloss, unsigned short minExtraPing, unsigned short extraPingVariance)=0;
+    procedure ApplyNetworkSimulator(packetloss: single; minExtraPing: Word; extraPingVariance: Word);
 
     /// Limits how much outgoing bandwidth can be sent per-connection.
     /// This limit does not apply to the sum of all connections!
     /// Exceeding the limit queues up outgoing traffic
     /// \param[in] maxBitsPerSecond Maximum bits per second to send.  Use 0 for unlimited (default). Once set, it takes effect immedately and persists until called again.
-    virtual void SetPerConnectionOutgoingBandwidthLimit( unsigned maxBitsPerSecond )=0;
+    procedure SetPerConnectionOutgoingBandwidthLimit(maxBitsPerSecond: Word);
 
     /// Returns if you previously called ApplyNetworkSimulator
     /// \return If you previously called ApplyNetworkSimulator
-    virtual bool IsNetworkSimulatorActive( void )=0;
+    function IsNetworkSimulatorActive(): Boolean;
 
     // --------------------------------------------------------------------------------------------Statistical Functions - Functions dealing with API performance--------------------------------------------------------------------------------------------
 
@@ -536,19 +538,19 @@ type
     /// \param[in] rns If you supply this structure, it will be written to it.  Otherwise it will use a static struct, which is not threadsafe
     /// \return 0 on can't find the specified system.  A pointer to a set of data otherwise.
     /// \sa RakNetStatistics.h
-    virtual RakNetStatistics * GetStatistics( const SystemAddress systemAddress, RakNetStatistics *rns=0 )=0;
+    function GetStatistics(const systemAddress: ISystemAddress; rns: IRakNetStatistics = 0): IRakNetStatistics;
     /// \brief Returns the network statistics of the system at the given index in the remoteSystemList.
     ///	\return True if the index is less than the maximum number of peers allowed and the system is active. False otherwise.
-    virtual bool GetStatistics( const unsigned int index, RakNetStatistics *rns )=0;
+    function GetStatistics(const index: Word; rns: IRakNetStatistics): Boolean;
     /// \brief Returns the list of systems, and statistics for each of those systems
     /// Each system has one entry in each of the lists, in the same order
     /// \param[out] addresses SystemAddress for each connected system
     /// \param[out] guids RakNetGUID for each connected system
     /// \param[out] statistics Calculated RakNetStatistics for each connected system
-    virtual void GetStatisticsList(DataStructures::List<SystemAddress> &addresses, DataStructures::List<RakNetGUID> &guids, DataStructures::List<RakNetStatistics> &statistics)=0;
+    procedure GetStatisticsList(addresses: TList<SystemAddress>; guids: TList<RakNetGUID>; statistics: TList<RakNetStatistics>);
 
     /// \Returns how many messages are waiting when you call Receive()
-    virtual unsigned int GetReceiveBufferSize(void)=0;
+    function GetReceiveBufferSize(): Word;
 
     // --------------------------------------------------------------------------------------------EVERYTHING AFTER THIS COMMENT IS FOR INTERNAL USE ONLY--------------------------------------------------------------------------------------------
 
@@ -560,10 +562,10 @@ type
     //	+ cat::AuthenticatedEncryption::OVERHEAD_BYTES
     // #endif
     // );
-    virtual bool RunUpdateCycle( BitStream &updateBitStream )=0;
+    function RunUpdateCycle(updateBitStream: IBitStream): Boolean;
 
     /// \internal
-    virtual bool SendOutOfBand(const char *host, unsigned short remotePort, const char *data, BitSize_t dataLength, unsigned connectionSocketIndex=0 )=0;
+    function SendOutOfBand(const host: PChar; remotePort: Word; const data: PChar; dataLength: BitSize_t; connectionSocketIndex: Word = 0): Boolean;
   end;
 
 implementation
