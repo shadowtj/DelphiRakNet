@@ -5,7 +5,9 @@ program client;
 {$R *.res}
 
 uses
-  System.SysUtils;
+  System.SysUtils,
+  RakNetTypes,
+  RakPeerInterface;
 
 var
   isServer: Boolean;
@@ -13,8 +15,34 @@ var
   ip: string;
   serverPort: string;
 
+  rss: IRakNetStatistics;
+  socketDescriptor: TSocketDescriptor;
 begin
   try
+
+    // Pointers to the interfaces of our server and client.
+    // Note we can easily have both in the same program
+    RakNet::RakPeerInterface *client=RakNet::RakPeerInterface::GetInstance();
+  //	client->InitializeSecurity(0,0,0,0);
+    //RakNet::PacketLogger packetLogger;
+    //client->AttachPlugin(&packetLogger);
+
+
+//	// Holds packets
+//	RakNet::Packet* p;
+//
+//	// GetPacketIdentifier returns this
+//	unsigned char packetIdentifier;
+//
+//	// Record the first client that connects to us so we can pass it to the ping function
+//	RakNet::SystemAddress clientID=RakNet::UNASSIGNED_SYSTEM_ADDRESS;
+//
+//	// Crude interface
+//
+//	// Holds user data
+//	char ip[64], serverPort[30], clientPort[30];
+
+
     // A client
     isServer := false;
 
@@ -43,8 +71,8 @@ begin
 
     // Connecting the client is very simple.  0 means we don't care about
     // a connectionValidationInteger, and false for low priority threads
-//    RakNet::SocketDescriptor socketDescriptor(atoi(clientPort),0);
-//    socketDescriptor.socketFamily=AF_INET;
+    socketDescriptor.port := StrToIntDef(clientPort, 0);
+    socketDescriptor.socketFamily := AF_INET;
 //    client->Startup(8,&socketDescriptor, 1);
 //    client->SetOccasionalPing(true);
 

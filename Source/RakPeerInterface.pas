@@ -5,6 +5,8 @@ interface
 uses
   RakNetTypes,
   RakNetTime,
+  RakNetSocket2,
+  PacketPriority,
   System.Generics.Collections;
 
 type
@@ -111,7 +113,7 @@ type
     /// \param[in] timeoutTime How long to keep the connection alive before dropping it on unable to send a reliable message. 0 to use the default from SetTimeoutTime(UNASSIGNED_SYSTEM_ADDRESS);
     /// \return CONNECTION_ATTEMPT_STARTED on successful initiation. Otherwise, an appropriate enumeration indicating failure.
     /// \note CONNECTION_ATTEMPT_STARTED does not mean you are already connected!
-    function ConnectWithSocket(const host: PChar; remotePort: Word; const passwordData: PChar; passwordDataLength: Integer; socket: TRakNetSocket2; publicKey: IPublicKey = nill; sendConnectionAttemptCount: Word = 12; timeBetweenSendConnectionAttemptsMS: Word = 500; timeoutTime: TimeMS = 0): TConnectionAttemptResult;
+    function ConnectWithSocket(const host: PChar; remotePort: Word; const passwordData: PChar; passwordDataLength: Integer; socket: TRakNetSocket2; publicKey: TPublicKey; sendConnectionAttemptCount: Word = 12; timeBetweenSendConnectionAttemptsMS: Word = 500; timeoutTime: TimeMS = 0): TConnectionAttemptResult;
 
     /// \brief Connect to the specified network ID (Platform specific console function)
     /// \details Does built-in NAt traversal
@@ -124,7 +126,7 @@ type
     /// \param[in] orderingChannel If blockDuration > 0, ID_DISCONNECTION_NOTIFICATION will be sent on this channel
     /// \param[in] disconnectionNotificationPriority Priority to send ID_DISCONNECTION_NOTIFICATION on.
     /// If you set it to 0 then the disconnection notification won't be sent
-    procedure Shutdown(blockDuration: Word; orderingChannel: Byte = 0; disconnectionNotificationPriority: PacketPriority = LOW_PRIORITY);
+    procedure Shutdown(blockDuration: Word; orderingChannel: Byte = 0; disconnectionNotificationPriority: TPacketPriority = LOW_PRIORITY);
 
     /// Returns if the network thread is running
     /// \return true if the network thread is running, false otherwise
@@ -133,7 +135,7 @@ type
     /// Fills the array remoteSystems with the SystemAddress of all the systems we are connected to
     /// \param[out] remoteSystems An array of SystemAddress structures to be filled with the SystemAddresss of the systems we are connected to. Pass 0 to remoteSystems to only get the number of systems we are connected to
     /// \param[in, out] numberOfSystems As input, the size of remoteSystems array.  As output, the number of elements put into the array
-    function GetConnectionList(remoteSystems: ISystemAddress; numberOfSystems: Word): Boolean;
+    function GetConnectionList(remoteSystems: TSystemAddress; numberOfSystems: Word): Boolean;
 
     /// Returns the next uint32_t that Send() will return
     /// \note If using RakPeer from multiple threads, this may not be accurate for your thread. Use IncrementNextSendReceipt() in that case.
@@ -157,7 +159,7 @@ type
     /// \param[in] broadcast True to send this packet to all connected systems. If true, then systemAddress specifies who not to send the packet to.
     /// \param[in] forceReceipt If 0, will automatically determine the receipt number to return. If non-zero, will return what you give it.
     /// \return 0 on bad input. Otherwise a number that identifies this message. If \a reliability is a type that returns a receipt, on a later call to Receive() you will get ID_SND_RECEIPT_ACKED or ID_SND_RECEIPT_LOSS with bytes 1-4 inclusive containing this number
-    function Send(const data: PChar; const length: Integer; priority: PacketPriority; reliability: PacketReliability; orderingChannel: Char; const systemIdentifier: AddressOrGUID; broadcast: Boolean; forceReceiptNumber: UInt32 = 0): UInt32;
+    function Send(const data: PChar; const length: Integer; priority: PacketPriority; reliability: TPacketReliability; orderingChannel: Char; const systemIdentifier: AddressOrGUID; broadcast: Boolean; forceReceiptNumber: UInt32 = 0): UInt32;
 
     /// "Send" to yourself rather than a remote system. The message will be processed through the plugins and returned to the game as usual
     /// This function works anytime
@@ -176,7 +178,7 @@ type
     /// \param[in] forceReceipt If 0, will automatically determine the receipt number to return. If non-zero, will return what you give it.
     /// \return 0 on bad input. Otherwise a number that identifies this message. If \a reliability is a type that returns a receipt, on a later call to Receive() you will get ID_SND_RECEIPT_ACKED or ID_SND_RECEIPT_LOSS with bytes 1-4 inclusive containing this number
     /// \note COMMON MISTAKE: When writing the first byte, bitStream->Write((unsigned char) ID_MY_TYPE) be sure it is casted to a byte, and you are not writing a 4 byte enumeration.
-    function Send(const bitStream: RakNet.IBitStream; priority: PacketPriority; reliability: PacketReliability; orderingChannel: Char; const systemIdentifier: AddressOrGUID; broadcast: Boolean; forceReceiptNumber: Uint32 = 0): Uint32;
+    function Send(const bitStream: RakNet.IBitStream; priority: TPacketPriority; reliability: TPacketReliability; orderingChannel: Char; const systemIdentifier: AddressOrGUID; broadcast: Boolean; forceReceiptNumber: Uint32 = 0): Uint32;
 
     /// Sends multiple blocks of data, concatenating them automatically.
     ///

@@ -11,6 +11,11 @@ type
 //  RakPeerInterface = class;
 //class BitStream;
 //struct Packet;
+  TsocketFamily = (
+    AF_INET,
+    AF_INET6
+  );
+
 
   TStartupResult = (
     RAKNET_STARTED,
@@ -130,7 +135,7 @@ type
     /// On the positive side, NAT Punchthrough is not needed and should not be used with IPV6 because there are enough addresses that routers do not need to create address mappings.
     /// RakPeer::Startup() will fail if this IP version is not supported.
     /// \pre RAKNET_SUPPORT_IPV6 must be set to 1 in RakNetDefines.h for AF_INET6
-    socketFamily: Word;
+    socketFamily: TsocketFamily;
 
     remotePortRakNetWasStartedOn_PS3_PSP2: Word;
 

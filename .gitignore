@@ -2,3 +2,4 @@
 *.identcache
 Samples/Chat Example/lib/
 *.stat
+Samples/Chat Example/bin/
